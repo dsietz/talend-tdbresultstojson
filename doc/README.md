@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/aur/license/yaourt.svg)](https://opensource.org/licenses/gpl-license)
+
 ## tDBResultsToJSON
 
 + Version 1.0 
