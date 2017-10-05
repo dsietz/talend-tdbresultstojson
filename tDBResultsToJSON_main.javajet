@@ -1,0 +1,238 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.IMetadataColumn 
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		org.talend.core.model.metadata.types.JavaTypesManager
+		org.talend.core.model.metadata.types.JavaType
+		java.util.List 
+    	java.util.Map		
+	" 
+%>
+<% 
+    CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+    INode node = (INode)codeGenArgument.getArgument();
+    String cid = node.getUniqueName();	
+    
+    String incomingConnName = null;
+    List<? extends IConnection> inConns = node.getIncomingConnections(); 
+    String jsonInclude = ElementParameterParser.getValue(node,"__JSON_INCLUDE__");   
+    Boolean inclStruct = (jsonInclude.equals("BOTH") || jsonInclude.equals("STRUCTURE"))?true:false;
+    Boolean inclData   = (jsonInclude.equals("BOTH") || jsonInclude.equals("DATA"))?true:false;
+    String nullPlcHldr = ElementParameterParser.getValue(node,"__NULL_PLACEHOLDER__"); 
+    Boolean prntKeyCat = (ElementParameterParser.getValue(node,"__PARENT_KEY_CATALOG__").equals("true"))?true:false;
+    Boolean prntKeySch = (ElementParameterParser.getValue(node,"__PARENT_KEY_SCHEMA__").equals("true"))?true:false;
+%>
+nb_line_<%=cid %>++;
+
+<%
+	if(inConns != null && inConns.size() > 0) {
+    	IConnection inConn = inConns.get(0);
+    	incomingConnName = inConn.getName();
+	
+		List<? extends IConnection> outgoingConns = node.getOutgoingConnections();
+		
+		if(outgoingConns != null && outgoingConns.size() > 0) {
+    	    for(IConnection outgoingConn : outgoingConns) {
+    	        %>
+    	        //convert the ResultSet to JSON
+    	        java.sql.DatabaseMetaData dmd_<%=cid %> = ((java.sql.Connection) <%=incomingConnName%>.dbConnection).getMetaData();
+    	        java.sql.ResultSet rs_<%=cid %> = (java.sql.ResultSet) <%=incomingConnName%>.resultSet;
+    	        java.sql.ResultSetMetaData rsmd_<%=cid %>;
+    	        org.json.JSONObject json_<%=cid %> = new org.json.JSONObject();
+    	        <%
+    	        if(inclStruct){
+    	        	%> 	
+    	        	java.util.List <String> keysPrim_<%=cid %> = new java.util.ArrayList<String>();
+    	        	java.util.HashSet <java.util.ArrayList> hsTbl_<%=cid %> = new java.util.HashSet();
+    	        	<%
+     	        }
+     	        %>
+    	        
+    	        try{
+    	        	rsmd_<%=cid %> = rs_<%=cid %>.getMetaData();   
+    	        	
+     	        	<%
+     	        	if(inclStruct){
+    	        		%> 	    	        		
+     	        		//get the primary keys
+     	        		java.sql.ResultSet rsPrimKeys_<%=cid %> = dmd_<%=cid %>.getPrimaryKeys(null,rsmd_<%=cid %>.getSchemaName(1),rsmd_<%=cid %>.getTableName(1));
+						while (rsPrimKeys_<%=cid %>.next()){
+							json_<%=cid %>.append("primary_keys", rsPrimKeys_<%=cid %>.getString("COLUMN_NAME"));
+							keysPrim_<%=cid %>.add(rsPrimKeys_<%=cid %>.getString("COLUMN_NAME"));
+						}
+						<%
+     	        	}
+     	        	%>
+     	        	     
+     	        	int cnt_<%=cid %> = 0;
+     	        		
+     	        	while (rs_<%=cid %>.next()){
+     	        		org.json.JSONObject rowJSON_<%=cid %> = new org.json.JSONObject();
+     	        			
+     	        		for(int c_<%=cid %> = 1;c_<%=cid %> <= rsmd_<%=cid %>.getColumnCount();c_<%=cid %>++){
+     	        			org.json.JSONObject colJSON_<%=cid %> = new org.json.JSONObject();
+     	        				
+     	        			<%
+     	        			if(inclStruct){
+    	        				%> 	
+     	        				colJSON_<%=cid %>.put("order", c_<%=cid %>);
+     	        				<%
+     	        			}
+     	        			%>
+     	        				
+     	        			colJSON_<%=cid %>.put("name", rsmd_<%=cid %>.getColumnName(c_<%=cid %>));
+     	        				
+     	        			<%
+     	        			if(inclData){
+     	        				%>    
+     	        				//convert the column value to a string
+     	        				//String val = new SuperString_<%=cid %>().getNullDescriptor();
+     	        				
+     	        				//System.out.println("Column Type: "+rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>));
+     	        				
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("FLOAT"))? new SuperString_<%=cid %>(rs_<%=cid %>.getDouble(c_<%=cid %>)).toString() : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("VARCHAR"))? rs_<%=cid %>.getString(c_<%=cid %>) : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("DOUBLE"))? new SuperString_<%=cid %>(rs_<%=cid %>.getDouble(c_<%=cid %>)).toString() : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("DECIMAL"))? new SuperString_<%=cid %>(rs_<%=cid %>.getBigDecimal(c_<%=cid %>)).toString() : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("INTEGER"))? new SuperString_<%=cid %>(rs_<%=cid %>.getInt(c_<%=cid %>)).toString() : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("DATE"))? new SuperString_<%=cid %>(rs_<%=cid %>.getDate(c_<%=cid %>)).toString() : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("TIMESTAMP"))? new SuperString_<%=cid %>(rs_<%=cid %>.getTimestamp(c_<%=cid %>)).toString() : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("CHAR"))? rs_<%=cid %>.getString(c_<%=cid %>) : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("INT IDENTITY"))? new SuperString_<%=cid %>(rs_<%=cid %>.getInt(c_<%=cid %>)).toString() : val;
+     	        				//val = (rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>).equalsIgnoreCase("DATETIME"))? new SuperString_<%=cid %>(rs_<%=cid %>.getTimestamp(c_<%=cid %>)).toString() : val;
+
+								Object nullValue = JSONObject.NULL;
+								//Object nullValue = "$#NULL#$";
+								Object val = nullValue;
+								String columnName = rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>);
+
+								if (columnName.equalsIgnoreCase("TIMESTAMP") || columnName.equalsIgnoreCase("DATETIME")) {
+									val = (rs_<%=cid %>.getTimestamp(c_<%=cid %>) == null) ? nullValue : rs_<%=cid %>.getTimestamp(c_<%=cid %>).toString();
+								}
+								else if (columnName.equalsIgnoreCase("DATE")) {
+									val = (rs_<%=cid %>.getDate(c_<%=cid %>) == null) ? nullValue : rs_<%=cid %>.getDate(c_<%=cid %>).toString();
+								}
+								else if (columnName.equalsIgnoreCase("FLOAT")) {
+									val = ((Double)rs_<%=cid %>.getObject(c_<%=cid %>) == null) ? nullValue : Double.toString(rs_<%=cid %>.getDouble(c_<%=cid %>));
+								}
+								else if (columnName.equalsIgnoreCase("DOUBLE")) {
+									val = ((Double)rs_<%=cid %>.getObject(c_<%=cid %>) == null) ? nullValue : Double.toString(rs_<%=cid %>.getDouble(c_<%=cid %>));
+								}
+								else if (columnName.equalsIgnoreCase("DECIMAL")) {
+									val = (rs_<%=cid %>.getBigDecimal(c_<%=cid %>) == null) ? nullValue : rs_<%=cid %>.getBigDecimal(c_<%=cid %>).toString();
+								}
+								else if (columnName.equalsIgnoreCase("INTEGER") || columnName.equalsIgnoreCase("SMALLINT") || columnName.equalsIgnoreCase("INT IDENTITY")) {
+									val = ((Integer)rs_<%=cid %>.getObject(c_<%=cid %>) == null) ? nullValue : Integer.toString(rs_<%=cid %>.getInt(c_<%=cid %>));
+								}
+								else if (columnName.equalsIgnoreCase("CHAR") || columnName.equalsIgnoreCase("VARCHAR")) {
+									val = (rs_<%=cid %>.getString(c_<%=cid %>) == null) ? nullValue : rs_<%=cid %>.getString(c_<%=cid %>);
+								}
+								else if (columnName.equalsIgnoreCase("TIME")) {
+									val = (rs_<%=cid %>.getObject(c_<%=cid %>) == null) ? nullValue : rs_<%=cid %>.getObject(c_<%=cid %>);
+								}
+								else {
+									val = (rs_<%=cid %>.getObject(c_<%=cid %>) == null) ? nullValue : rs_<%=cid %>.getObject(c_<%=cid %>);
+								}
+
+     	        				colJSON_<%=cid %>.put("value", val);
+     	        				<%
+     	        			}
+     	        			%>
+     	        				
+     	        			<%
+     	        			if(inclStruct){
+     	        				//provide the structural meta data about the column
+    	        				%> 	
+     	        				colJSON_<%=cid %>.put("type", rsmd_<%=cid %>.getColumnTypeName(c_<%=cid %>));
+     	        				colJSON_<%=cid %>.put("percision", rsmd_<%=cid %>.getPrecision(c_<%=cid %>));
+								colJSON_<%=cid %>.put("scale", rsmd_<%=cid %>.getScale(c_<%=cid %>));
+								colJSON_<%=cid %>.put("signed", rsmd_<%=cid %>.isSigned(c_<%=cid %>));
+								colJSON_<%=cid %>.put("nullable", (rsmd_<%=cid %>.isNullable(c_<%=cid %>) == 1)? true : false);
+								
+								//primary key indicator
+								colJSON_<%=cid %>.put("primary_key",(keysPrim_<%=cid %>.contains(colJSON_<%=cid %>.get("name")))? true : false);
+								
+								//gather a list of catagory, schema, and table names to be used for finding parent relationships later
+								java.util.ArrayList<String> arrTbl_<%=cid %> = new java.util.ArrayList<String>();
+								arrTbl_<%=cid %>.add((rsmd_<%=cid %>.getCatalogName(c_<%=cid %>).equals(""))? null : rsmd_<%=cid %>.getCatalogName(c_<%=cid %>));
+								arrTbl_<%=cid %>.add((rsmd_<%=cid %>.getSchemaName(c_<%=cid %>).equals(""))? null : rsmd_<%=cid %>.getSchemaName(c_<%=cid %>));
+								arrTbl_<%=cid %>.add(rsmd_<%=cid %>.getTableName(c_<%=cid %>));
+								hsTbl_<%=cid %>.add(arrTbl_<%=cid %>);
+								<%
+     	        			}
+     	        			%>
+     	        				
+     	        			rowJSON_<%=cid %>.append("columns",colJSON_<%=cid %>);
+     	        		}//end iterate through columns  
+     	        		
+     	        		<%
+    	        		if(inclStruct){
+    	        			%>
+     	        			//build out the parent relationship structures
+     	        			java.util.Iterator itr_<%=cid %>  = hsTbl_<%=cid %>.iterator();
+							while (itr_<%=cid %>.hasNext()){
+								java.util.ArrayList<String> arrTbl_<%=cid %> = (java.util.ArrayList)itr_<%=cid %>.next();
+														
+								java.sql.ResultSet impKeyRS_<%=cid %> = dmd_<%=cid %>.getImportedKeys(
+									<% if(!prntKeyCat) { %>null,<% }else{ %>(arrTbl_<%=cid %>.get(0).equals("") || arrTbl_<%=cid %>.get(0).equals("null"))? null : arrTbl_<%=cid %>.get(0),<% } %>
+									<% if(!prntKeySch) { %>null,<% }else{ %>(arrTbl_<%=cid %>.get(1).equals("") || arrTbl_<%=cid %>.get(1).equals("null"))? null : arrTbl_<%=cid %>.get(1),<% } %>
+									arrTbl_<%=cid %>.get(2));
+						
+								while(impKeyRS_<%=cid %>.next()){
+									System.out.println("getting parent relationship...");
+									org.json.JSONObject impKeyJSON_<%=cid %> = new org.json.JSONObject();
+									impKeyJSON_<%=cid %>.put("primary_catalog",impKeyRS_<%=cid %>.getString("PKTABLE_CAT"));
+									impKeyJSON_<%=cid %>.put("primary_schema",impKeyRS_<%=cid %>.getString("PKTABLE_SCHEM"));
+									impKeyJSON_<%=cid %>.put("primary_table",impKeyRS_<%=cid %>.getString("PKTABLE_NAME"));
+									impKeyJSON_<%=cid %>.put("primary_column",impKeyRS_<%=cid %>.getString("PKCOLUMN_NAME"));
+									impKeyJSON_<%=cid %>.put("primary_key_sequence",impKeyRS_<%=cid %>.getString("KEY_SEQ"));
+									impKeyJSON_<%=cid %>.put("primary_key_name",impKeyRS_<%=cid %>.getString("PK_NAME"));
+									impKeyJSON_<%=cid %>.put("foreign_key_name",impKeyRS_<%=cid %>.getString("FK_NAME"));
+									impKeyJSON_<%=cid %>.put("update_rule",impKeyRS_<%=cid %>.getString("UPDATE_RULE"));
+									impKeyJSON_<%=cid %>.put("delete_rule",impKeyRS_<%=cid %>.getString("DELETE_RULE"));
+									impKeyJSON_<%=cid %>.put("constraint_deferrability",impKeyRS_<%=cid %>.getString("DEFERRABILITY"));
+									
+									json_<%=cid %>.append("parent_relationships",impKeyJSON_<%=cid %>);
+								}							
+							}
+							<%
+     	        		}
+     	        		%>
+							
+     	        		json_<%=cid %>.append("rows",rowJSON_<%=cid %>);  
+     	        		cnt_<%=cid %>++;
+     	        		
+     	        		<%
+     	        		if(!inclData){
+     	        			// we only need the structure of the columns, so only iterate through the first result
+    	        			%> 	
+     	        			break;
+     	        			<%
+     	        		}
+     	        		%>       			
+     	        	}//end iterate through results   
+     	        		
+     	        	<%
+     	        	if(inclData){	
+     	        		%>
+     	        		json_<%=cid %>.put("row_count",cnt_<%=cid %>);
+     	        		<%
+     	        	}
+     	        	%> 
+     	        }catch(Exception e){
+     	        	e.printStackTrace();
+     	        }finally{
+     	        	<%=outgoingConn.getName()%>.resultJSON = json_<%=cid %>.toString();
+     	        }
+     	    	<%
+			}
+    	}
+	}	
+%>
+	
+	

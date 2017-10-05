@@ -1,0 +1,105 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.IMetadataColumn 
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		org.talend.core.model.metadata.types.JavaTypesManager
+		org.talend.core.model.metadata.types.JavaType
+		java.util.List 
+    	java.util.Map		
+	" 
+%>
+<% 
+    CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+    INode node = (INode)codeGenArgument.getArgument();
+    String cid = node.getUniqueName();	
+    String nullPlcHldr = ElementParameterParser.getValue(node,"__NULL_PLACEHOLDER__"); 
+%>
+int nb_line_<%=cid %> = 0;
+
+class SuperString_<%=cid %> {
+	private String nullDescr;
+	private String val;
+	SimpleDateFormat sdf;
+	
+	public SuperString_<%=cid %>(){
+	    nullDescr = "<%=nullPlcHldr %>";		
+		val = nullDescr;		
+		sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+	}
+	
+	//constructor for BigDecimal
+	public SuperString_<%=cid %>(BigDecimal orig){
+		this();
+		try {
+			if(orig != null){
+				val = orig.toString();
+			}
+		} catch (Exception e) {
+			//
+		}
+	}
+	
+	//constructor for Date
+	public SuperString_<%=cid %>(Date orig){
+		this();
+		try {
+			if(orig != null){
+				val = sdf.format(orig);
+			}
+		} catch (Exception e) {
+			//
+		}
+	}
+	
+	//constructor for Double
+	public SuperString_<%=cid %>(Double orig){
+		this();
+		try {
+			if(orig != null){
+				val = Double.toString(orig);
+			}
+		} catch (Exception e) {
+			//
+		}
+	}
+	
+	//constructor for Integer
+	public SuperString_<%=cid %>(Integer orig){
+		this();
+		try {
+			if(orig != null){
+				val = Integer.toString(orig);
+			}
+		} catch (Exception e) {
+			//
+		}
+	}
+	
+	//constructor for Timestamp
+	public SuperString_<%=cid %>(java.sql.Timestamp orig){
+		this();
+		try {
+			if(orig != null){
+				val = sdf.format(orig);
+			}
+		} catch (Exception e) {
+			//
+		}
+	}
+	
+	
+	//return the String that represtents a NULL value
+	public String getNullDescriptor(){
+		return nullDescr;
+	}
+	
+	//return the String value
+	public String toString(){
+		return val;
+	}
+}
