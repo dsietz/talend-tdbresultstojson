@@ -1,2 +1,2 @@
 # talend-tdbresultstojson
-[Talend tDBResultsToJson component][doc/README.MD]
+[Talend tDBResultsToJson component](doc/README.MD)
