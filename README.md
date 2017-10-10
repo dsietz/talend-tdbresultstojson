@@ -21,7 +21,7 @@ Converts a database result set to a generic JSON string
 
 ![Alt text](/doc/tmysqlrow_02.png?raw=true "tMysqlRow - Advanced settings")
 
-### Passing the database conneciton object
+### Passing the database connection object
 
 3. Pass the DB connection object by calling a global get
 
